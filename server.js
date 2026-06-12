@@ -13,14 +13,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configure Cloudinary
-if (process.env.CLOUDINARY_URL) {
-    cloudinary.config(process.env.CLOUDINARY_URL);
-} else {
-    cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET
-    });
+try {
+    if (process.env.CLOUDINARY_URL) {
+        cloudinary.config(process.env.CLOUDINARY_URL);
+        console.log('✅ Connected to Cloudinary!');
+    } else {
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+        console.log('✅ Connected to Cloudinary!');
+    }
+} catch (err) {
+    console.error('❌ Cloudinary connection error:', err.message);
 }
 
 // Configure Multer (file upload)
@@ -67,17 +73,23 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Helper function untuk upload ke Cloudinary
-const uploadToCloudinary = (fileBuffer) => {
+// Function to upload to Cloudinary
+const uploadToCloudinary = (buffer) => {
     return new Promise((resolve, reject) => {
+        console.log('📤 Uploading file to Cloudinary...');
         const uploadStream = cloudinary.uploader.upload_stream(
             { folder: 'panzzstore' },
             (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
+                if (error) {
+                    console.error('❌ Cloudinary upload error:', error);
+                    reject(error);
+                } else {
+                    console.log('✅ File uploaded to Cloudinary:', result.secure_url);
+                    resolve(result);
+                }
             }
         );
-        streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+        streamifier.createReadStream(buffer).pipe(uploadStream);
     });
 };
 
